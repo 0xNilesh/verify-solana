@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
 
@@ -54,7 +55,25 @@ func main() {
 	fmt.Println("Message bytes (hex):", hex.EncodeToString(msgBytes))
 	// spew.Dump(decodedTx.Message)
 
-	// Verify signature against provided pubkey
-	isValid := signature.Verify(pubKey, msgBytes)
-	fmt.Printf("Was the transaction signed by %s? %v\n", address, isValid)
+	// Method 1: Using solana-go verify
+	ok1 := verifyUsingSolanaLib(signature, pubKey, msgBytes)
+	fmt.Printf("[solana-go] Was the transaction signed by %s? %v\n", address, ok1)
+
+	// Method 2: Using standard crypto/ed25519
+	ok2 := verifyUsingEd25519(signature[:], pubKey[:], msgBytes)
+	fmt.Printf("[ed25519]   Was the transaction signed by %s? %v\n", address, ok2)
+}
+
+// Method using solana-go's built-in Verify
+func verifyUsingSolanaLib(sig solana.Signature, pub solana.PublicKey, msg []byte) bool {
+	return sig.Verify(pub, msg)
+}
+
+// Method using standard crypto/ed25519
+func verifyUsingEd25519(sigBytes, pubKeyBytes, msg []byte) bool {
+	if len(pubKeyBytes) != ed25519.PublicKeySize || len(sigBytes) != ed25519.SignatureSize {
+		return false
+	}
+
+	return ed25519.Verify(pubKeyBytes, msg, sigBytes)
 }
